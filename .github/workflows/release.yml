@@ -90,6 +90,12 @@ jobs:
 
           git add Package.swift
           git commit -m "chore: update Package.swift for version ${XCFRAMEWORK_VERSION}"
+
+      - name: Configure Git for Push
+        run: |
+          git config user.name "NakaoakRei"
+          git config user.email "reideeplearning@gmail.com"
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_GITHUB }}@github.com/NakaokaRei/SwiftPackageXCFrameworkSample.git
       
       - name: Push changes to remote
         run: |
