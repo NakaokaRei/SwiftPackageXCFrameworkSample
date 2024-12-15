@@ -1,6 +1,6 @@
 import Testing
-@testable import SwiftPackageXCFrameworkSample
+@testable import CxxLibSample
 
 @Test func example() async throws {
-    // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    #expect(add(1, 2) == 3)
 }

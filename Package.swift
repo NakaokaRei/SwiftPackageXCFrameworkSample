@@ -3,22 +3,26 @@
 
 import PackageDescription
 
+let zipUrl = ""
+let checksum = ""
+
 let package = Package(
     name: "SwiftPackageXCFrameworkSample",
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "SwiftPackageXCFrameworkSample",
-            targets: ["SwiftPackageXCFrameworkSample"]),
+            targets: ["CxxLibSample"]
+        ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "SwiftPackageXCFrameworkSample"),
+//        .binaryTarget(name: "CxxLibSample", path: "CxxLibSample.xcframework"),
+        .binaryTarget(name: "CxxLibSample", url: zipUrl, checksum: checksum),
         .testTarget(
             name: "SwiftPackageXCFrameworkSampleTests",
-            dependencies: ["SwiftPackageXCFrameworkSample"]
+            dependencies: ["CxxLibSample"],
+            swiftSettings: [.interoperabilityMode(.Cxx)]
         ),
-    ]
+    ],
+    cLanguageStandard: .c11,
+    cxxLanguageStandard: .cxx20
 )
