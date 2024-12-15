@@ -3,8 +3,8 @@
 
 import PackageDescription
 
-let zipUrl = ""
-let checksum = ""
+let zipUrl = ".zip"
+let checksum = "22fe446fbd37021b758cb52167b9fe5a788c846121e9191e72c935fb2709d454"
 
 let package = Package(
     name: "SwiftPackageXCFrameworkSample",
