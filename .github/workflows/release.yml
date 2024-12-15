@@ -88,9 +88,10 @@ jobs:
         with:
           token: ${{ secrets.PAT_GITHUB }}
           branch: update-package-swift-${{ steps.extract_tag.outputs.tag_name }}
+          commit-message: "chore: update Package.swift for version ${{ steps.extract_tag.outputs.tag_name }}"
           title: "chore: update Package.swift for version ${{ steps.extract_tag.outputs.tag_name }}"
           body: |
             This PR updates `Package.swift` to use version ${{ steps.extract_tag.outputs.tag_name }} of `CxxLibSample.xcframework`.
-          base: main
+          base: master
           labels: 'release'
           add-paths: Package.swift
