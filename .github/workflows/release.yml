@@ -12,16 +12,6 @@ jobs:
       - name: Checkout SwiftPackageXCFrameworkSample Repository
         uses: actions/checkout@v3
 
-      - name: Install Dependencies
-        run: |
-          brew update
-          brew install cmake
-          brew install jq
-          brew install gh
-
-      - name: Authenticate GitHub CLI
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-
       - name: Set up environment variables
         run: |
           echo "CLONE_REPO_URL=https://github.com/NakaokaRei/CxxLibSample.git" >> $GITHUB_ENV
@@ -64,7 +54,7 @@ jobs:
           tag_name: ${{ github.event.client_payload.tag }}
           name: ${{ github.event.client_payload.tag }}
           draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_GITHUB }}
 
       - name: Get Release Asset URL and Checksum
         id: get_assets
@@ -88,8 +78,8 @@ jobs:
 
           git checkout -b update-package-swift-${TAG_NAME}
 
-          sed -i '' 's#let zipUrlKit = ".*"#let zipUrlKit = "${{ steps.get_assets.outputs.zipUrl }}.zip"#' Package.swift
-          sed -i '' 's#let checksumKit = ".*"#let checksumKit = "${{ steps.get_assets.outputs.checksum }}"#' Package.swift
+          sed -i '' 's#let zipUrl = ".*"#let zipUrl = "${{ steps.get_assets.outputs.zipUrl }}.zip"#' Package.swift
+          sed -i '' 's#let checksum = ".*"#let checksum = "${{ steps.get_assets.outputs.checksum }}"#' Package.swift
 
           git add Package.swift
           git commit -m "chore: update Package.swift for version ${XCFRAMEWORK_VERSION}"
@@ -97,7 +87,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_GITHUB }}
           branch: update-package-swift-${{ github.event.client_payload.tag }}
           title: "chore: update Package.swift for version ${{ github.event.client_payload.tag }}"
           body: |
