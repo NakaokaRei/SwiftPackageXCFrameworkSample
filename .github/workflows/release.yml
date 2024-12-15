@@ -20,6 +20,13 @@ jobs:
           echo "XCFRAMEWORK_DIR=build/xcframework" >> $GITHUB_ENV
           echo "SWIFT_PACKAGE_DIR=." >> $GITHUB_ENV
 
+      - name: Extract Tag Name
+        id: extract_tag
+        run: |
+          TAG_REF="${{ github.event.client_payload.tag }}"  # "refs/tags/1.0.0"
+          TAG_NAME="${TAG_REF#refs/tags/}"  # "1.0.0"
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+
       - name: Clone CxxLibSample Repository
         run: |
           git clone $CLONE_REPO_URL $CLONE_REPO_DIR
@@ -41,7 +48,7 @@ jobs:
 
       - name: Archive XCFramework
         run: |
-          TAG_NAME="${{ github.event.client_payload.tag }}"
+          TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
           XCFRAMEWORK_PATH="$CLONE_REPO_DIR/$XCFRAMEWORK_DIR/CxxLibSample.xcframework"
           ZIP_PATH="build/CxxLibSample.xcframework-${TAG_NAME}.zip"
           mkdir -p build
@@ -50,16 +57,16 @@ jobs:
       - name: Upload XCFramework to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: build/CxxLibSample.xcframework-${{ github.event.client_payload.tag }}.zip
-          tag_name: ${{ github.event.client_payload.tag }}
-          name: ${{ github.event.client_payload.tag }}
+          files: build/CxxLibSample.xcframework-${{ steps.extract_tag.outputs.tag_name }}.zip
+          tag_name: ${{ steps.extract_tag.outputs.tag_name }}
+          name: ${{ steps.extract_tag.outputs.tag_name }}
           draft: true
           token: ${{ secrets.PAT_GITHUB }}
 
       - name: Get Release Asset URL and Checksum
         id: get_assets
         run: |
-          TAG_NAME="${{ github.event.client_payload.tag }}"
+          TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
           ASSET_URL=$(gh release view "$TAG_NAME" --json assets --jq '.assets[0].browser_download_url')
           echo "zipUrl=${ASSET_URL}" >> $GITHUB_ENV
 
@@ -71,9 +78,7 @@ jobs:
 
       - name: Update Package.swift
         run: |
-          TAG_NAME="${{ github.event.client_payload.tag }}"
-          ZIP_URL="${{ steps.get_assets.outputs.zipUrl }}"
-          CHECKSUM="${{ steps.get_assets.outputs.checksum }}"
+          TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
           XCFRAMEWORK_VERSION="${TAG_NAME}"
 
           git checkout -b update-package-swift-${TAG_NAME}
@@ -88,10 +93,10 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT_GITHUB }}
-          branch: update-package-swift-${{ github.event.client_payload.tag }}
-          title: "chore: update Package.swift for version ${{ github.event.client_payload.tag }}"
+          branch: update-package-swift-${{ steps.extract_tag.outputs.tag_name }}
+          title: "chore: update Package.swift for version ${{ steps.extract_tag.outputs.tag_name }}"
           body: |
-            This PR updates `Package.swift` to use version ${{ github.event.client_payload.tag }} of `CxxLibSample.xcframework`.
+            This PR updates `Package.swift` to use version ${{ steps.extract_tag.outputs.tag_name }} of `CxxLibSample.xcframework`.
           base: main
           labels: 'release'
           add-paths: Package.swift
