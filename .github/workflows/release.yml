@@ -90,6 +90,11 @@ jobs:
 
           git add Package.swift
           git commit -m "chore: update Package.swift for version ${XCFRAMEWORK_VERSION}"
+      
+      - name: Push changes to remote
+        run: |
+          TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
+          git push origin update-package-swift-${TAG_NAME}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
