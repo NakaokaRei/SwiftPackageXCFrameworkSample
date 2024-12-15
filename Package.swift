@@ -3,8 +3,8 @@
 
 import PackageDescription
 
-let zipUrl = ""
-let checksum = ""
+let zipUrl = "https://api.github.com/repos/NakaokaRei/SwiftPackageXCFrameworkSample/releases/assets/213499002.zip"
+let checksum = "10b08bcc1dc2c9bd03ced485d6f51ac58d6c6232acc0c17d95f83cb3ece04cf0"
 
 let package = Package(
     name: "SwiftPackageXCFrameworkSample",
