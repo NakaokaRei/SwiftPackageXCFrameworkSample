@@ -65,6 +65,8 @@ jobs:
 
       - name: Get Release Asset URL and Checksum
         id: get_assets
+        env:
+          GH_TOKEN: ${{ secrets.PAT_GITHUB }} 
         run: |
           TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
           ASSET_URL=$(gh release view "$TAG_NAME" --json assets --jq '.assets[0].browser_download_url')
