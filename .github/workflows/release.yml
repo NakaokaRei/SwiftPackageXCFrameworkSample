@@ -1,0 +1,107 @@
+name: Release Swift Package
+
+on:
+  repository_dispatch:
+    types: [release-cxxlibsample]
+
+jobs:
+  build_and_release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout SwiftPackageXCFrameworkSample Repository
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          brew update
+          brew install cmake
+          brew install jq
+          brew install gh
+
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Set up environment variables
+        run: |
+          echo "CLONE_REPO_URL=https://github.com/NakaokaRei/CxxLibSample.git" >> $GITHUB_ENV
+          echo "CLONE_REPO_DIR=CxxLibSample" >> $GITHUB_ENV
+          echo "BUILD_SCRIPT=build_xcframework.sh" >> $GITHUB_ENV
+          echo "XCFRAMEWORK_DIR=build/xcframework" >> $GITHUB_ENV
+          echo "SWIFT_PACKAGE_DIR=." >> $GITHUB_ENV
+
+      - name: Clone CxxLibSample Repository
+        run: |
+          git clone $CLONE_REPO_URL $CLONE_REPO_DIR
+
+      - name: Make build_xcframework.sh executable
+        run: chmod +x $CLONE_REPO_DIR/$BUILD_SCRIPT
+
+      - name: Run build_xcframework.sh
+        run: |
+          cd $CLONE_REPO_DIR
+          ./build_xcframework.sh
+
+      - name: Verify XCFramework
+        run: |
+          if [ ! -d "$CLONE_REPO_DIR/$XCFRAMEWORK_DIR/CxxLibSample.xcframework" ]; then
+            echo "Error: XCFramework not found at $CLONE_REPO_DIR/$XCFRAMEWORK_DIR/CxxLibSample.xcframework"
+            exit 1
+          fi
+
+      - name: Archive XCFramework
+        run: |
+          TAG_NAME="${{ github.event.client_payload.tag }}"
+          XCFRAMEWORK_PATH="$CLONE_REPO_DIR/$XCFRAMEWORK_DIR/CxxLibSample.xcframework"
+          ZIP_PATH="build/CxxLibSample.xcframework-${TAG_NAME}.zip"
+          mkdir -p build
+          ditto -c -k --sequesterRsrc --keepParent "$XCFRAMEWORK_PATH" "$ZIP_PATH"
+
+      - name: Upload XCFramework to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/CxxLibSample.xcframework-${{ github.event.client_payload.tag }}.zip
+          tag_name: ${{ github.event.client_payload.tag }}
+          name: ${{ github.event.client_payload.tag }}
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Release Asset URL and Checksum
+        id: get_assets
+        run: |
+          TAG_NAME="${{ github.event.client_payload.tag }}"
+          ASSET_URL=$(gh release view "$TAG_NAME" --json assets --jq '.assets[0].browser_download_url')
+          echo "zipUrl=${ASSET_URL}" >> $GITHUB_ENV
+
+          CHECKSUM=$(shasum -a 256 build/CxxLibSample.xcframework-${TAG_NAME}.zip | awk '{print $1}')
+          echo "checksum=${CHECKSUM}" >> $GITHUB_ENV
+
+          echo "zipUrl=${ASSET_URL}" >> $GITHUB_OUTPUT
+          echo "checksum=${CHECKSUM}" >> $GITHUB_OUTPUT
+
+      - name: Update Package.swift
+        run: |
+          TAG_NAME="${{ github.event.client_payload.tag }}"
+          ZIP_URL="${{ steps.get_assets.outputs.zipUrl }}"
+          CHECKSUM="${{ steps.get_assets.outputs.checksum }}"
+          XCFRAMEWORK_VERSION="${TAG_NAME}"
+
+          git checkout -b update-package-swift-${TAG_NAME}
+
+          sed -i '' 's#let zipUrlKit = ".*"#let zipUrlKit = "${{ steps.get_assets.outputs.zipUrl }}.zip"#' Package.swift
+          sed -i '' 's#let checksumKit = ".*"#let checksumKit = "${{ steps.get_assets.outputs.checksum }}"#' Package.swift
+
+          git add Package.swift
+          git commit -m "chore: update Package.swift for version ${XCFRAMEWORK_VERSION}"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-package-swift-${{ github.event.client_payload.tag }}
+          title: "chore: update Package.swift for version ${{ github.event.client_payload.tag }}"
+          body: |
+            This PR updates `Package.swift` to use version ${{ github.event.client_payload.tag }} of `CxxLibSample.xcframework`.
+          base: main
+          labels: 'release'
+          add-paths: Package.swift
