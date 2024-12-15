@@ -55,6 +55,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$XCFRAMEWORK_PATH" "$ZIP_PATH"
 
       - name: Upload XCFramework to GitHub Releases
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           files: build/CxxLibSample.xcframework-${{ steps.extract_tag.outputs.tag_name }}.zip
@@ -69,7 +70,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_GITHUB }} 
         run: |
           TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
-          ASSET_URL=$(gh release view "$TAG_NAME" --json assets --jq '.assets[0].browser_download_url')
+          ASSET_URL=$(echo '${{ steps.create_release.outputs.assets }}' | jq -r '.[] | select(.name == "CxxLibSample.xcframework-'${TAG_NAME}'.zip").url')
           echo "zipUrl=${ASSET_URL}" >> $GITHUB_ENV
 
           CHECKSUM=$(shasum -a 256 build/CxxLibSample.xcframework-${TAG_NAME}.zip | awk '{print $1}')
