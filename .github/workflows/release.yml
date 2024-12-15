@@ -80,27 +80,8 @@ jobs:
 
       - name: Update Package.swift
         run: |
-          TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
-          XCFRAMEWORK_VERSION="${TAG_NAME}"
-
-          git checkout -b update-package-swift-${TAG_NAME}
-
           sed -i '' 's#let zipUrl = ".*"#let zipUrl = "${{ steps.get_assets.outputs.zipUrl }}.zip"#' Package.swift
           sed -i '' 's#let checksum = ".*"#let checksum = "${{ steps.get_assets.outputs.checksum }}"#' Package.swift
-
-          git add Package.swift
-          git commit -m "chore: update Package.swift for version ${XCFRAMEWORK_VERSION}"
-
-      - name: Configure Git for Push
-        run: |
-          git config user.name "NakaoakRei"
-          git config user.email "reideeplearning@gmail.com"
-          git remote set-url origin https://x-access-token:${{ secrets.PAT_GITHUB }}@github.com/NakaokaRei/SwiftPackageXCFrameworkSample.git
-      
-      - name: Push changes to remote
-        run: |
-          TAG_NAME="${{ steps.extract_tag.outputs.tag_name }}"
-          git push origin update-package-swift-${TAG_NAME}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
